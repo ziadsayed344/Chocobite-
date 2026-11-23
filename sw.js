@@ -1,4 +1,18 @@
-const C='chocobite-v6',F=['./','index.html','manifest.json','icon-192.png','icon-512.png'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>clients.claim())));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request).catch(()=>caches.match('index.html'))))});
+// Never serve private shared data or RPC results from a cache.
+const C='chocobite-original-shared-20261123-r1';
+const F=['./','index.html','manifest.json','icon-192.png','icon-512.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
+// A new version does not force itself over an active sale. Reload is the version boundary.
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(x=>x.startsWith('chocobite-')&&x!==C).map(x=>caches.delete(x))))));
+self.addEventListener('fetch',e=>{
+ const u=new URL(e.request.url);
+ if(e.request.method!=='GET'||u.origin!==self.location.origin||u.pathname.includes('/rest/')||u.pathname.includes('/auth/')||u.pathname.includes('/__'))return;
+ const bundled=F.some(f=>new URL(f,self.registration.scope).pathname===u.pathname);
+ if(!bundled&&e.request.mode!=='navigate')return;
+ // A controlling worker serves one complete release, never mixed updated scripts.
+ e.respondWith(caches.open(C).then(async c=>{
+  const lookup=e.request.mode==='navigate'?'index.html':e.request;
+  const cached=await c.match(lookup,{ignoreSearch:true});
+  return cached||fetch(e.request);
+ }));
+});
