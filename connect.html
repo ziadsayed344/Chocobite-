@@ -585,4 +585,5 @@ async function saveReturnPassword(){
 }
 if(customerMode){document.querySelector('link[rel="manifest"]').href='customer.webmanifest';document.title='Chocobite طلبات';}
 render();
-</script></body></html>
+</script><script>const reviewOrderWithCustomer=showO;
+showO=function(id){reviewOrderWithCustomer(id);if(!inShared()||sharedClient.role!=='owner'||customerMode)return;const o=S.orders.find(x=>x.id===id);if(!o)return;const c=o.customer;const box=document.createElement('section');box.className='card';box.id='order-customer-details';box.innerHTML='<b>بيانات العميل</b>'+(c?'<p>الاسم: '+E(c.name||'غير مسجل')+'</p><p>التليفون: <bdi>'+E(c.phone||'غير مسجل')+'</bdi></p><p>العنوان: '+E(c.address||'غير مسجل')+'</p>':'<p>مفيش بيانات عميل مسجلة مع الطلب ده</p>');document.querySelector('#m .sheet')?.prepend(box);};</script></body></html>
