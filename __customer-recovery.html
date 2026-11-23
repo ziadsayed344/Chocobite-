@@ -556,9 +556,9 @@ if(customerMode){
  window.addEventListener('beforeunload',e=>{if(customerPending){e.preventDefault();e.returnValue='';}});
 }
 if(customerMode&&sharedConfig.enabled&&sharedConfig.turnstileSiteKey){
- const widget=document.createElement('div');widget.id='human-check';document.body.append(widget);
+ const widget=document.createElement('div');widget.id='human-check';widget.className='card';widget.style.cssText='margin:8px 12px;min-height:70px;text-align:center';document.body.insertBefore(widget,document.querySelector('main'));customerDiagnostic('جارٍ تحميل التحقق الآمن، الطلب محفوظ ومش هيتبعت تلقائيًا');
  const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
- script.onload=()=>customerWidget=window.turnstile.render(widget,{sitekey:sharedConfig.turnstileSiteKey,action:'order',callback:t=>{window.cbHumanToken=t;customerDiagnostic('التحقق جاهز. الطلب المحفوظ لم يتم إرساله تلقائيًا');},'expired-callback':()=>window.cbHumanToken='','error-callback':code=>{window.cbHumanToken='';customerDiagnostic('HUMAN_ERROR: '+code);}});
+ script.onerror=()=>customerDiagnostic('HUMAN_SCRIPT_LOAD_FAILED: تعذر تحميل التحقق الآمن');script.onload=()=>{customerDiagnostic('التحقق ظهر فوق المنيو. كمّله فقط من غير إرسال الطلب');try{customerWidget=window.turnstile.render(widget,{sitekey:sharedConfig.turnstileSiteKey,action:'order',callback:t=>{window.cbHumanToken=t;customerDiagnostic('التحقق جاهز. الطلب المحفوظ لم يتم إرساله تلقائيًا');},'expired-callback':()=>{window.cbHumanToken='';customerDiagnostic('HUMAN_EXPIRED: انتهت مدة التحقق، لم يتم إرسال الطلب');},'error-callback':code=>{window.cbHumanToken='';customerDiagnostic('HUMAN_ERROR: '+code);}});}catch(e){customerDiagnostic('HUMAN_INIT_FAILED: '+e.message);}};
  document.head.append(script);
 }
 
