@@ -1,5 +1,5 @@
 // Never serve private shared data or RPC results from a cache.
-const C='chocobite-original-shared-20261123-r14';
+const C='chocobite-original-shared-20261123-r15';
 const F=['./','index.html','connect.html','manifest.json','customer.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
 // A new version does not force itself over an active sale. Reload is the version boundary.
@@ -23,9 +23,9 @@ async function cbPushReceipt(receipt,stage){
 }
 self.addEventListener('push',event=>{
  event.waitUntil((async()=>{let d={};try{d=event.data?.json()||{}}catch{}
- const receipt=d.receipt;const test=d.title==='Chocobite: اختبار التنبيه';const worker=d.kind==='worker';
- await self.registration.showNotification(test?'Chocobite: اختبار التنبيه':worker?'Chocobite: أوردر عامل جديد':'Chocobite: طلب عميل جديد',{body:test?'ده اختبار إشعار فقط، مش طلب ولا بيع.':worker?'اتسجل أوردر جديد من العامل. افتح حساب المالك.':'فيه طلب جديد مستني مراجعتك. افتح حساب المالك.',icon:new URL('icon-192.png',self.registration.scope).href,dir:'rtl',lang:'ar',tag:typeof d.tag==='string'?d.tag:'cb-order',renotify:true,vibrate:[250,100,250],data:{url:new URL(worker?'connect.html?orders=1':'connect.html?pending=1',self.registration.scope).href,receipt}});
- await cbPushReceipt(receipt,'display');
+ const receipt=d.receipt;const received=cbPushReceipt(receipt,'received');const test=d.title==='Chocobite: اختبار التنبيه';const worker=d.kind==='worker';
+ try{await self.registration.showNotification(test?'Chocobite: اختبار التنبيه':worker?'Chocobite: أوردر عامل جديد':'Chocobite: طلب عميل جديد',{body:test?'ده اختبار إشعار فقط، مش طلب ولا بيع.':worker?'اتسجل أوردر جديد من العامل. افتح حساب المالك.':'فيه طلب جديد مستني مراجعتك. افتح حساب المالك.',icon:new URL('icon-192.png',self.registration.scope).href,dir:'rtl',lang:'ar',tag:typeof d.tag==='string'?d.tag:'cb-order',renotify:true,vibrate:[250,100,250],data:{url:new URL(worker?'connect.html?orders=1':'connect.html?pending=1',self.registration.scope).href,receipt}});
+ await Promise.all([received,cbPushReceipt(receipt,'display')]);}catch(error){const name=['NotAllowedError','TypeError','AbortError','InvalidStateError'].includes(error?.name)?error.name:'UnknownError';await Promise.all([received,cbPushReceipt(receipt,'display_error:'+name)]);}
  })());
 });
 self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{await cbPushReceipt(event.notification.data?.receipt,'click');const workerUrl=new URL('connect.html?orders=1',self.registration.scope).href;const url=event.notification.data?.url===workerUrl?workerUrl:new URL('connect.html?pending=1',self.registration.scope).href;const list=await clients.matchAll({type:'window',includeUncontrolled:true});for(const c of list){if(c.url.startsWith(self.registration.scope)&&'focus'in c){await c.navigate(url);return c.focus();}}return clients.openWindow(url);})());});
