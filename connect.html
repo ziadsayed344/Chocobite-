@@ -284,11 +284,11 @@ function sharedError(e){
 }
 async function sharedLogin(){
  if(!sharedConfig.enabled||!sharedConfig.ledgerVerified){toast(sharedError({message:'SHARED_MODE_NOT_ACTIVATED'}));return;}
- modal('<h3>دخول الشغل المشترك</h3><p class="sub">البيانات المحلية محفوظة من غير رفع أو تغيير.</p><label>الإيميل</label><input id="shared-email" type="email" autocomplete="username"><label>كلمة المرور</label><input id="shared-password" type="password" autocomplete="current-password"><button class="btn" onclick="sharedSignIn()">دخول</button>');
+ modal('<h3>دخول الشغل المشترك</h3><p class="sub">البيانات المحلية محفوظة من غير رفع أو تغيير.</p><label>الإيميل أو اسم الدخول</label><input id="shared-email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"><p class="sub">العامل: worker.1122</p><label>كلمة المرور</label><input id="shared-password" type="password" autocomplete="current-password"><button class="btn" onclick="sharedSignIn()">دخول</button>');
 }
 async function sharedSignIn(){
  if(sharedBusy)return;sharedBusy=true;
- const email=$('#shared-email').value,password=$('#shared-password').value;
+ const login=$('#shared-email').value.trim(),email=login.toLowerCase()==='worker.1122'?'worker@chocobite-test.invalid':login,password=$('#shared-password').value;
  const candidate=new ChocobiteShared.OriginalLedgerClient(sharedConfig,null,fetch.bind(window));
  try{
   installPendingTransport(candidate);
@@ -567,7 +567,7 @@ if(customerMode&&sharedConfig.enabled&&sharedConfig.turnstileSiteKey){
 function staffEntryGate(){
  document.documentElement.classList.add('staff-locked');closeM();
  let g=document.getElementById('staff-entry');if(!g){g=document.createElement('section');g.id='staff-entry';g.className='card';g.style.cssText='max-width:420px;margin:28px auto;padding:24px';document.body.append(g);}
- g.innerHTML='<h2>دخول Chocobite</h2><p class="sub">للمالك والعامل والشريك. ادخل بحسابك الأول.</p><label>الإيميل</label><input id="shared-email" type="email" autocomplete="username"><label>كلمة المرور</label><input id="shared-password" type="password" autocomplete="current-password"><button class="btn" onclick="sharedSignIn()">دخول</button>';
+ g.innerHTML='<h2>دخول Chocobite</h2><p class="sub">للمالك والعامل والشريك. ادخل بحسابك الأول.</p><label>الإيميل أو اسم الدخول</label><input id="shared-email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"><p class="sub">العامل: worker.1122</p><label>كلمة المرور</label><input id="shared-password" type="password" autocomplete="current-password"><button class="btn" onclick="sharedSignIn()">دخول</button>';
  g.querySelector('#shared-password').addEventListener('keydown',e=>{if(e.key==='Enter')sharedSignIn();});
 }
 const authenticatedRender=render;
