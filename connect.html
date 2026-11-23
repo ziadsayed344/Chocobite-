@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fdeed6"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><title>Chocobite</title>
-<style>
+<script>if(!new URLSearchParams(location.search).has('order'))document.documentElement.classList.add('staff-locked');</script><style>html.staff-locked main,html.staff-locked nav,html.staff-locked header button,html.staff-locked #m,html.staff-locked .bar{display:none!important}html:not(.staff-locked) #staff-entry{display:none}</style><style>
 :root{--c:#6b3a17;--c2:#fdecc8;--bg:#fff8ec;--y:#e9a82b;--hd:#fdeed6;--t:#2b1a0e;--g:#8b7d70;--ok:#2e8b57;--bad:#c0392b;--r:16px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;font-family:system-ui,'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t);padding-bottom:calc(64px + env(safe-area-inset-bottom))}
@@ -562,4 +562,27 @@ if(customerMode&&sharedConfig.enabled&&sharedConfig.turnstileSiteKey){
  document.head.append(script);
 }
 
-</script><script>const checkedRender=render;render=function(){checkedRender();if(sharedConfig.enabled){const n=document.createElement('div');n.className='card sub';n.textContent=customerMode?'طلبك بيتبعت للمراجعة، ومش بيتحسب بيع إلا بعد موافقة المالك.':'الشغل المشترك أونلاين. المبيعات الجديدة تتسجل هنا فقط، والسجل القديم محفوظ على جهازه.';document.querySelector('main').prepend(n);}};render();</script><script>window.addEventListener('load',()=>{if(!customerMode&&!inShared())sharedLogin();},{once:true});</script><script>if(customerMode&&'serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});</script></body></html>
+</script><script>const checkedRender=render;render=function(){checkedRender();if(sharedConfig.enabled){const n=document.createElement('div');n.className='card sub';n.textContent=customerMode?'طلبك بيتبعت للمراجعة، ومش بيتحسب بيع إلا بعد موافقة المالك.':'الشغل المشترك أونلاين. المبيعات الجديدة تتسجل هنا فقط، والسجل القديم محفوظ على جهازه.';document.querySelector('main').prepend(n);}};render();</script><script>window.addEventListener('load',()=>{if(!customerMode&&!inShared())sharedLogin();},{once:true});</script><script>if(customerMode&&'serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});</script><script>
+// Staff entry is login-first. Backend roles remain the source of data permissions.
+function staffEntryGate(){
+ document.documentElement.classList.add('staff-locked');closeM();
+ let g=document.getElementById('staff-entry');if(!g){g=document.createElement('section');g.id='staff-entry';g.className='card';g.style.cssText='max-width:420px;margin:28px auto;padding:24px';document.body.append(g);}
+ g.innerHTML='<h2>دخول Chocobite</h2><p class="sub">للمالك والعامل والشريك. ادخل بحسابك الأول.</p><label>الإيميل</label><input id="shared-email" type="email" autocomplete="username"><label>كلمة المرور</label><input id="shared-password" type="password" autocomplete="current-password"><button class="btn" onclick="sharedSignIn()">دخول</button>';
+ g.querySelector('#shared-password').addEventListener('keydown',e=>{if(e.key==='Enter')sharedSignIn();});
+}
+const authenticatedRender=render;
+render=function(){if(!customerMode&&!inShared()){staffEntryGate();return;}document.documentElement.classList.remove('staff-locked');document.getElementById('staff-entry')?.remove();authenticatedRender();};
+sharedLogin=async function(){if(!customerMode&&!inShared())staffEntryGate();};
+const priorProductsView=vP;
+vP=function(){return (inShared()&&sharedClient.role==='owner'?'<div class="card"><b>باسورد المرتجع للعامل</b><p class="sub">للعمليات المسموح بها للعامل فقط. ما تشاركش باسورد حسابك.</p><button class="btn s" onclick="returnPasswordForm()">تعيين أو تغيير باسورد المرتجع</button></div>':'')+priorProductsView();};
+function returnPasswordForm(){if(!inShared()||sharedClient.role!=='owner')return;modal('<h3>باسورد المرتجع للعامل</h3><p class="sub">من ٨ إلى ٧٢ حرف. بيتحفظ مشفّر كقيمة تحقق، ومش بيظهر تاني. تغيير الباسورد يلغي القديم.</p><label>الباسورد الجديد</label><input id="return-new-password" type="password" autocomplete="new-password" maxlength="72"><label>تأكيد الباسورد</label><input id="return-confirm-password" type="password" autocomplete="new-password" maxlength="72"><button class="btn" onclick="saveReturnPassword()">حفظ باسورد المرتجع</button>');}
+async function saveReturnPassword(){
+ if(sharedBusy||!inShared()||sharedClient.role!=='owner')return;
+ const a=$('#return-new-password'),b=$('#return-confirm-password');let password=a.value;
+ if(password!==b.value){toast('الباسورد والتأكيد مختلفين');return;}if(password.length<8||password.length>72){toast('الباسورد من ٨ إلى ٧٢ حرف');return;}
+ a.value='';b.value='';sharedBusy=true;
+ try{await sharedClient.request('/rest/v1/rpc/cb_set_returns_password',{method:'POST',body:{p_ledger:sharedConfig.ledgerId,p_password:password}});closeM();toast('اتحفظ باسورد المرتجع');}catch(e){toast('حفظ الباسورد لم يتأكد. أعد تعيينه من هنا، من غير تجربة مرتجع حقيقي');}finally{password='';sharedBusy=false;}
+}
+if(customerMode){document.querySelector('link[rel="manifest"]').href='customer.webmanifest';document.title='Chocobite طلبات';}
+render();
+</script></body></html>
