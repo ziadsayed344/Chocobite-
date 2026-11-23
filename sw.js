@@ -1,5 +1,5 @@
 // Never serve private shared data or RPC results from a cache.
-const C='chocobite-original-shared-20261123-r4';
+const C='chocobite-original-shared-20261123-r5';
 const F=['./','index.html','connect.html','manifest.json','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
 // A new version does not force itself over an active sale. Reload is the version boundary.
