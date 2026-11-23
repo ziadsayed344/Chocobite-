@@ -1,0 +1,27 @@
+{
+  "name": "Chocobite طلبات",
+  "short_name": "Chocobite طلبات",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./?order",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdeed6",
+  "theme_color": "#fdeed6",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "./?order"
+}
