@@ -499,11 +499,12 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshSha
 </script><script>
 /* Original catalog UI customer mode. Backend gate is mandatory, never direct anonymous write. */
 const customerMode=new URLSearchParams(location.search).has('order');
+function customerHumanStatus(message){let n=document.getElementById('customer-human-status');if(!n){n=document.createElement('div');n.id='customer-human-status';n.className='card sub';document.body.insertBefore(n,document.querySelector('main'));}n.textContent=message;}
 const customerStorageKey='chocobite.customer.pending.v1';
 let customerPending=false,customerKey=crypto.randomUUID(),customerJob=null,customerWidget=null;
 try{customerJob=JSON.parse(localStorage.getItem(customerStorageKey)||'null');if(customerJob?.ledger!==sharedConfig.ledgerId)customerJob=null;}catch{}
 function saveCustomerJob(job){customerJob=job;if(job)localStorage.setItem(customerStorageKey,JSON.stringify(job));else localStorage.removeItem(customerStorageKey);}
-function resetCustomerHuman(){window.cbHumanToken='';if(customerWidget!==null)window.turnstile?.reset(customerWidget);}
+function resetCustomerHuman(){window.cbHumanToken='';customerHumanStatus('جارٍ تجهيز تحقق آمن جديد للمحاولة التالية');if(customerWidget!==null)window.turnstile?.reset(customerWidget);}
 async function customerLoad(){
  if(!sharedConfig.enabled||!sharedConfig.ledgerVerified)throw Error('NOT_ACTIVE');
  const r=await fetch(sharedConfig.url+'/rest/v1/rpc/cb_menu',{method:'POST',headers:{apikey:sharedConfig.key,'Content-Type':'application/json'},body:JSON.stringify({p_ledger:sharedConfig.ledgerId})});
@@ -555,10 +556,10 @@ if(customerMode){
  window.addEventListener('beforeunload',e=>{if(customerPending){e.preventDefault();e.returnValue='';}});
 }
 if(customerMode&&sharedConfig.enabled&&sharedConfig.turnstileSiteKey){
- const widget=document.createElement('div');widget.id='human-check';document.body.append(widget);
+ const widget=document.createElement('div');widget.id='human-check';widget.className='card';widget.style.cssText='margin:8px 12px;min-height:70px;text-align:center';document.body.insertBefore(widget,document.querySelector('main'));customerHumanStatus('جارٍ تحميل التحقق الآمن. مفيش طلب هيتبعت تلقائيًا');
  const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
- script.onload=()=>customerWidget=window.turnstile.render(widget,{sitekey:sharedConfig.turnstileSiteKey,action:'order',callback:t=>window.cbHumanToken=t,'expired-callback':()=>window.cbHumanToken='','error-callback':()=>window.cbHumanToken=''});
+ script.onerror=()=>customerHumanStatus('التحقق الآمن مش قادر يتحمّل. الطلب لم يتم إرساله');script.onload=()=>{customerHumanStatus('كمّل التحقق فوق المنيو قبل إرسال الطلب');try{customerWidget=window.turnstile.render(widget,{sitekey:sharedConfig.turnstileSiteKey,action:'order',callback:t=>{window.cbHumanToken=t;customerHumanStatus('التحقق جاهز. الطلب يتبعت لما تضغط إرسال');},'expired-callback':()=>{window.cbHumanToken='';customerHumanStatus('انتهت مدة التحقق، كمّله تاني قبل الإرسال');},'error-callback':code=>{window.cbHumanToken='';customerHumanStatus('تعذر التحقق الآمن: '+code);}});}catch(e){customerHumanStatus('تعذر بدء التحقق الآمن');}};
  document.head.append(script);
 }
 
-</script><script>const checkedRender=render;render=function(){checkedRender();if(sharedConfig.enabled){const n=document.createElement('div');n.className='card sub';n.textContent='الشغل المشترك أونلاين. المبيعات الجديدة تتسجل هنا فقط، والسجل القديم محفوظ على جهازه.';document.querySelector('main').prepend(n);}};render();</script><script>window.addEventListener('load',()=>{if(!customerMode&&!inShared())sharedLogin();},{once:true});</script></body></html>
+</script><script>const checkedRender=render;render=function(){checkedRender();if(sharedConfig.enabled){const n=document.createElement('div');n.className='card sub';n.textContent=customerMode?'طلبك بيتبعت للمراجعة، ومش بيتحسب بيع إلا بعد موافقة المالك.':'الشغل المشترك أونلاين. المبيعات الجديدة تتسجل هنا فقط، والسجل القديم محفوظ على جهازه.';document.querySelector('main').prepend(n);}};render();</script><script>window.addEventListener('load',()=>{if(!customerMode&&!inShared())sharedLogin();},{once:true});</script><script>if(customerMode&&'serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});</script></body></html>
