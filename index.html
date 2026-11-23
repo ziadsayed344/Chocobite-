@@ -516,7 +516,7 @@ async function customerSend(job){
  try{
   const r=await fetch(sharedConfig.customerGate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...job,token})});
   const data=await r.json().catch(()=>null);
-  if(!r.ok){if(r.status>=400&&r.status<500){if(job.uncertain){closeM();render();toast('نتيجة الطلب السابق لسه محتاجة تأكيد. أعد نفس الطلب بعد التحقق، من غير طلب جديد.');return;}saveCustomerJob(null);render();toast(data?.error==='MENU_PRICE_CHANGED'?'أسعار المنيو اتغيرت. افتح المنيو تاني وراجع الطلب.':'الطلب ما اتسجلش. راجع البيانات والتحقق وحاول تاني.');return;}throw Error('UNCONFIRMED');}
+  if(!r.ok){if(r.status===409&&data?.error==='CONNECTION_CHECK_ONLY'){saveCustomerJob(null);closeM();render();toast('اختبار الاتصال نجح. الطلبات والبيع الفعلي لسه مقفولين.');return;}if(r.status>=400&&r.status<500){if(job.uncertain){closeM();render();toast('نتيجة الطلب السابق لسه محتاجة تأكيد. أعد نفس الطلب بعد التحقق، من غير طلب جديد.');return;}saveCustomerJob(null);render();toast(data?.error==='MENU_PRICE_CHANGED'?'أسعار المنيو اتغيرت. افتح المنيو تاني وراجع الطلب.':'الطلب ما اتسجلش. راجع البيانات والتحقق وحاول تاني.');return;}throw Error('UNCONFIRMED');}
   if(data?.ok!==true)throw Error('UNCONFIRMED');
   saveCustomerJob(null);customerKey=crypto.randomUUID();cart={};closeM();render();toast('الطلب وصل ومستني موافقة المالك');
  }catch{saveCustomerJob({...job,uncertain:true});closeM();render();toast('حالة إرسال الطلب مش مؤكدة. استخدم إعادة نفس الطلب، ما تكررش من جهاز تاني.');}
@@ -561,4 +561,4 @@ if(customerMode&&sharedConfig.enabled&&sharedConfig.turnstileSiteKey){
  document.head.append(script);
 }
 
-</script></body></html>
+</script><script>const checkedRender=render;render=function(){checkedRender();if(sharedConfig.enabled){const n=document.createElement('div');n.className='card sub';n.textContent='اختبار ربط فقط. البيع وإرسال الطلبات الفعلية مقفولين مؤقتًا. السجل القديم محفوظ على جهازه.';document.querySelector('main').prepend(n);}};render();</script></body></html>
