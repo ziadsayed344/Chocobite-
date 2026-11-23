@@ -586,4 +586,37 @@ async function saveReturnPassword(){
 if(customerMode){document.querySelector('link[rel="manifest"]').href='customer.webmanifest';document.title='Chocobite طلبات';}
 render();
 </script><script>const reviewOrderWithCustomer=showO;
-showO=function(id){reviewOrderWithCustomer(id);if(!inShared()||sharedClient.role!=='owner'||customerMode)return;const o=S.orders.find(x=>x.id===id);if(!o)return;const c=o.customer;const box=document.createElement('section');box.className='card';box.id='order-customer-details';box.innerHTML='<b>بيانات العميل</b>'+(c?'<p>الاسم: '+E(c.name||'غير مسجل')+'</p><p>التليفون: <bdi>'+E(c.phone||'غير مسجل')+'</bdi></p><p>العنوان: '+E(c.address||'غير مسجل')+'</p>':'<p>مفيش بيانات عميل مسجلة مع الطلب ده</p>');document.querySelector('#m .sheet')?.prepend(box);};</script></body></html>
+showO=function(id){reviewOrderWithCustomer(id);if(!inShared()||sharedClient.role!=='owner'||customerMode)return;const o=S.orders.find(x=>x.id===id);if(!o)return;const c=o.customer;const box=document.createElement('section');box.className='card';box.id='order-customer-details';box.innerHTML='<b>بيانات العميل</b>'+(c?'<p>الاسم: '+E(c.name||'غير مسجل')+'</p><p>التليفون: <bdi>'+E(c.phone||'غير مسجل')+'</bdi></p><p>العنوان: '+E(c.address||'غير مسجل')+'</p>':'<p>مفيش بيانات عميل مسجلة مع الطلب ده</p>');document.querySelector('#m .sheet')?.prepend(box);};</script><script>const CB_PUSH_PUBLIC='BK67R3HCPvY1uC78PjinyWHQKPoLJNcNAWdXazBEgi8C0EII45wESCD__u2W-WEo2xJZgwygNxsPGhGxiJ9Txw4';
+function cbPushDevice(){let id=localStorage.getItem('cb-owner-alert-device');if(!id){id=crypto.randomUUID();localStorage.setItem('cb-owner-alert-device',id);}return id;}
+function cbPushOwner(){return !customerMode&&inShared()&&sharedClient.role==='owner';}
+function cbPushRpc(name,args={}){return sharedClient.request('/rest/v1/rpc/'+name,{method:'POST',body:{p_ledger:sharedConfig.ledgerId,p_device:cbPushDevice(),...args}});}
+async function cbPushSettings(){
+ if(!cbPushOwner())return;
+ modal('<h3>إشعارات طلبات العملاء</h3><p>فعّلها على موبايلك أنت فقط. التنبيه بيستمر على الجهاز ده حتى لو خرجت من حساب المالك أو دخلت بحساب العامل. إيقافه من الزر هنا أو إعدادات المتصفح.</p><p class="sub">تنبيه عام من غير اسم العميل أو رقمه أو عنوانه. الطلبات محفوظة في قائمة المراجعة حتى لو التنبيه اتأخر. الصوت حسب إعدادات الموبايل، ومش مضمون في كل الظروف.</p><div id="cb-push-status">جارٍ فحص الجهاز...</div><br><button class="btn" onclick="cbPushEnable()">تفعيل على الموبايل ده</button><br><br><button class="btn s" onclick="cbPushRefresh()">فحص حالة الاشتراك</button> <button class="btn s d" onclick="cbPushDisable()">إيقاف على الجهاز ده</button>');
+ await cbPushRefresh();
+}
+async function cbPushRefresh(){
+ if(!cbPushOwner())return;const el=document.getElementById('cb-push-status');if(!el)return;
+ try{
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){el.textContent='المتصفح ده مش بيدعم تنبيهات الخلفية.';return;}
+  const reg=await navigator.serviceWorker.getRegistration();const sub=await reg?.pushManager.getSubscription();const state=await cbPushRpc('cb_push_status');
+  let text='إذن المتصفح: '+({granted:'مسموح',denied:'محظور',default:'لسه ما اتطلبش'}[Notification.permission])+'، اشتراك المتصفح: '+(sub?'موجود':'غير موجود')+'، حفظ الجهاز على السيرفر: '+(state.registered?'تم':'لم يتم')+'. ';
+  if(reg?.waiting)text+='فيه تحديث مستني: خلّص أي عملية واقفل كل صفحات وتطبيق Chocobite وافتحه تاني، من غير مسح بيانات. ';
+  const latest=state.recent?.[0];if(latest)text+='آخر تنبيه: '+(latest.provider_status>=200&&latest.provider_status<300?'قبله مزود الإرسال':'لم يتأكد قبول الإرسال')+'، '+(latest.display_called_at?'المتصفح أكد تنفيذ عرض التنبيه':'لم يصل تأكيد تنفيذ العرض')+'، '+(latest.clicked_at?'تم الضغط عليه':'لا يوجد تأكيد ضغط')+'. قبول الإرسال وحده مش دليل إنه ظهر على الموبايل.';
+  el.textContent=text;
+ }catch{el.textContent='الفحص ما اكتملش. مفيش تنبيه اختبار اتبعت. جرّب الفحص تاني.';}
+}
+async function cbPushEnable(){
+ if(!cbPushOwner())return;const el=document.getElementById('cb-push-status');try{
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))throw Error();
+  const permission=await Notification.requestPermission();if(permission!=='granted'){el.textContent='الإذن مش مسموح. افتح إذن إشعارات الموقع ده في Chrome لو حابب تفعّله، من غير مسح البيانات.';return;}
+  const reg=await navigator.serviceWorker.register('sw.js');await reg.update();if(reg.installing)await new Promise(resolve=>{const w=reg.installing;w.addEventListener('statechange',()=>{if(['installed','activated','redundant'].includes(w.state))resolve();});});await navigator.serviceWorker.ready;
+  if(reg.waiting){el.textContent='التحديث لسه مستني. خلّص العملية واقفل كل صفحات وتطبيق Chocobite وافتحه تاني، وبعدها فعّل من هنا. متعملش مسح بيانات.';return;}
+  const src=await fetch('sw.js',{cache:'no-store'}).then(r=>r.text());if(!src.includes('CB_PENDING_PUSH_V1'))throw Error();
+  let sub=await reg.pushManager.getSubscription();if(!sub){const config=await fetch(sharedConfig.url+'/functions/v1/cb-order-push').then(r=>r.json());if(typeof config.vapid_public!=='string')throw Error();const b=config.vapid_public.replace(/-/g,'+').replace(/_/g,'/');sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(atob(b+'='.repeat((4-b.length%4)%4)),x=>x.charCodeAt(0))});}
+  const j=sub.toJSON();await cbPushRpc('cb_push_enroll',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth});await cbPushRefresh();
+ }catch{el.textContent='التفعيل لم يتأكد. مفيش تنبيه اختبار اتبعت. افحص الحالة أو جرّب التفعيل تاني.';}
+}
+async function cbPushDisable(){if(!cbPushOwner())return;try{await cbPushRpc('cb_push_disable');const reg=await navigator.serviceWorker.getRegistration();const sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();await cbPushRefresh();}catch{document.getElementById('cb-push-status').textContent='الإيقاف لم يتأكد. أعد المحاولة أو اقفل إذن إشعارات الموقع من Chrome.';}}
+const cbPushPriorRender=render;render=function(){cbPushPriorRender();if(cbPushOwner()){const b=document.createElement('button');b.id='cb-push-settings';b.className='btn s';b.textContent='إشعارات طلبات العملاء';b.onclick=cbPushSettings;document.getElementById('v').prepend(b);}};
+</script></body></html>
