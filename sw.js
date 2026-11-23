@@ -1,5 +1,5 @@
 // Never serve private shared data or RPC results from a cache.
-const C='chocobite-original-shared-20261123-r7';
+const C='chocobite-original-shared-20261123-r8';
 const F=['./','index.html','connect.html','manifest.json','customer.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
 // A new version does not force itself over an active sale. Reload is the version boundary.
@@ -16,3 +16,16 @@ self.addEventListener('fetch',e=>{
   return cached||fetch(e.request);
  }));
 });
+// CB_PENDING_PUSH_V1. Generic alerts only, independent of staff login.
+async function cbPushReceipt(receipt,stage){
+ if(!receipt||!/^[0-9a-f-]{36}$/.test(receipt.id||'')||!/^[0-9a-f-]{36}$/.test(receipt.token||''))return;
+ try{await fetch('https://plklrbadozamzxprglmk.supabase.co/rest/v1/rpc/cb_push_receipt',{method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_hXBwJQh9QYl0XtCIf0eMcQ_d8WhtJfk',Authorization:'Bearer sb_publishable_hXBwJQh9QYl0XtCIf0eMcQ_d8WhtJfk'},body:JSON.stringify({p_id:receipt.id,p_token:receipt.token,p_stage:stage})});}catch{}
+}
+self.addEventListener('push',event=>{
+ event.waitUntil((async()=>{let d={};try{d=event.data?.json()||{}}catch{}
+ const receipt=d.receipt;const test=d.title==='Chocobite: اختبار التنبيه';
+ await self.registration.showNotification(test?'Chocobite: اختبار التنبيه':'Chocobite: طلب عميل جديد',{body:test?'ده اختبار إشعار فقط، مش طلب ولا بيع.':'فيه طلب جديد مستني مراجعتك. افتح حساب المالك.',icon:new URL('icon-192.png',self.registration.scope).href,dir:'rtl',lang:'ar',tag:typeof d.tag==='string'?d.tag:'cb-order',renotify:true,vibrate:[250,100,250],data:{url:new URL('connect.html?pending=1',self.registration.scope).href,receipt}});
+ await cbPushReceipt(receipt,'display');
+ })());
+});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{await cbPushReceipt(event.notification.data?.receipt,'click');const url=new URL('connect.html?pending=1',self.registration.scope).href;const list=await clients.matchAll({type:'window',includeUncontrolled:true});for(const c of list){if(c.url.startsWith(self.registration.scope)&&'focus'in c){await c.navigate(url);return c.focus();}}return clients.openWindow(url);})());});
