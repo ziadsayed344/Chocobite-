@@ -1,9 +1,10 @@
 // Never serve private shared data or RPC results from a cache.
-const C='chocobite-original-shared-20261125-r17';
+const C='chocobite-original-shared-20261125-r18';
 const F=['./','index.html','connect.html','manifest.json','customer.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
-// A new version does not force itself over an active sale. Reload is the version boundary.
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(x=>x.startsWith('chocobite-')&&x!==C).map(x=>caches.delete(x))))));
+// Only an explicit update click activates over open pages.
+self.addEventListener('message',e=>{if(e.data?.type==='CB_APPLY_UPDATE')self.skipWaiting();});
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(x=>x.startsWith('chocobite-')&&x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
  const u=new URL(e.request.url);
  if(e.request.method!=='GET'||u.origin!==self.location.origin||u.pathname.includes('/rest/')||u.pathname.includes('/auth/')||u.pathname.includes('/__'))return;
@@ -12,6 +13,7 @@ self.addEventListener('fetch',e=>{
  // A controlling worker serves one complete release, never mixed updated scripts.
  e.respondWith(caches.open(C).then(async c=>{
   const lookup=e.request.mode==='navigate'?(u.pathname.endsWith('/connect.html')?'connect.html':'index.html'):e.request;
+  if(e.request.mode==='navigate'){try{const live=await fetch(e.request,{cache:'no-store'});if(live.ok){await c.put(lookup,live.clone());return live;}}catch{}}
   const cached=await c.match(lookup,{ignoreSearch:true});
   return cached||fetch(e.request);
  }));
